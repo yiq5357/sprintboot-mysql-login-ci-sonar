@@ -199,5 +199,7 @@ class UserRepositoryTest {
             entityManager.persistAndFlush(duplicateLoginIdUser);
         });
     }
+    
+    
 }
 

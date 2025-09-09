@@ -2,10 +2,12 @@ package com.example.springboot_mysql_login_ci_sonar.repository;
 
 import com.example.springboot_mysql_login_ci_sonar.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -29,6 +31,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
 
     /**
+     * 根據重置令牌查找用戶
+     */
+    Optional<User> findByResetToken(String resetToken);    
+    
+    /**
      * 檢查登入 ID 是否已存在
      * @param loginId 登入 ID
      * @return boolean
@@ -50,6 +57,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u WHERE u.loginId = :loginId AND u.password = :password AND u.enabled = true")
     Optional<User> findByLoginIdAndPassword(@Param("loginId") String loginId, @Param("password") String password);
+    
+    @Modifying
+    @Query("UPDATE User u SET u.resetToken = null, u.resetTokenExpiry = null WHERE u.resetTokenExpiry < :now")
+    void clearExpiredResetTokens(@Param("now") LocalDateTime now);    
+    
 }
 
 

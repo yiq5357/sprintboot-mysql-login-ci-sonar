@@ -8,7 +8,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Random;
 
 /**
  * User 業務邏輯層
@@ -110,4 +112,68 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    /**
+     * 申請密碼重置
+     */
+    public boolean requestPasswordReset(String loginId) {
+        log.info("申請密碼重置: loginId={}", loginId);
+        
+        Optional<User> userOpt = userRepository.findByLoginId(loginId);
+        if (userOpt.isEmpty()) {
+            log.warn("密碼重置申請失敗: 找不到用戶 loginId={}", loginId);
+            return false;
+        }
+        
+        User user = userOpt.get();
+        if (!user.getEnabled()) {
+            log.warn("密碼重置申請失敗: 用戶已停用 loginId={}", loginId);
+            return false;
+        }
+        
+        // 生成重置令牌 (6位數字)
+        String resetToken = String.format("%06d", new Random().nextInt(999999));
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15)); // 15分鐘後過期
+        
+        userRepository.save(user);
+        log.info("密碼重置令牌已生成: userId={}, token={}", user.getId(), resetToken);
+        
+        // 這裡可以整合簡訊或郵件服務發送令牌
+        // smsService.sendResetToken(user.getPhoneNumber(), resetToken);
+        
+        return true;
+    }
+
+    /**
+     * 重置密碼
+     */
+    public boolean resetPassword(String token, String newPassword) {
+        log.info("嘗試重置密碼: token={}", token);
+        
+        // 清除過期令牌
+        userRepository.clearExpiredResetTokens(LocalDateTime.now());
+        
+        Optional<User> userOpt = userRepository.findByResetToken(token);
+        if (userOpt.isEmpty()) {
+            log.warn("密碼重置失敗: 無效或過期的令牌 token={}", token);
+            return false;
+        }
+        
+        User user = userOpt.get();
+        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            log.warn("密碼重置失敗: 令牌已過期 userId={}", user.getId());
+            return false;
+        }
+        
+        // 更新密碼並清除令牌
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        
+        userRepository.save(user);
+        log.info("密碼重置成功: userId={}", user.getId());
+        
+        return true;
+    }    
+    
 }

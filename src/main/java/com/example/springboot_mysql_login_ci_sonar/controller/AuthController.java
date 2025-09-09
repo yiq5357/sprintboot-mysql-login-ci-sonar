@@ -87,6 +87,64 @@ public class AuthController {
     }
 
     /**
+     * 申請密碼重置 API
+     * POST /api/auth/forgot-password
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("收到密碼重置申請: loginId={}", request.getLoginId());
+        
+        try {
+            boolean success = userService.requestPasswordReset(request.getLoginId());
+            
+            if (success) {
+                // 為了安全考量，不論用戶是否存在都返回成功訊息
+                ApiResponse<String> response = ApiResponse.success(
+                    "如果該登入 ID 存在，重置驗證碼已發送。請檢查您的簡訊或郵件。"
+                );
+                return ResponseEntity.ok(response);
+            } else {
+                // 同樣返回成功訊息，避免洩露用戶是否存在
+                ApiResponse<String> response = ApiResponse.success(
+                    "如果該登入 ID 存在，重置驗證碼已發送。請檢查您的簡訊或郵件。"
+                );
+                return ResponseEntity.ok(response);
+            }
+            
+        } catch (Exception e) {
+            log.error("密碼重置申請過程中發生錯誤", e);
+            ApiResponse<String> response = ApiResponse.error("申請失敗，請稍後再試");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * 重置密碼 API
+     * POST /api/auth/reset-password
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        log.info("收到密碼重置請求: token={}", request.getToken());
+        
+        try {
+            boolean success = userService.resetPassword(request.getToken(), request.getNewPassword());
+            
+            if (success) {
+                ApiResponse<String> response = ApiResponse.success("密碼重置成功，請使用新密碼登入");
+                return ResponseEntity.ok(response);
+            } else {
+                ApiResponse<String> response = ApiResponse.error("重置失敗，令牌無效或已過期");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+            
+        } catch (Exception e) {
+            log.error("密碼重置過程中發生錯誤", e);
+            ApiResponse<String> response = ApiResponse.error("重置失敗，請稍後再試");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }    
+    
+    /**
      * 健康檢查 API
      * GET /api/auth/health
      */

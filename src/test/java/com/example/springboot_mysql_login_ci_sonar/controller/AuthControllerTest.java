@@ -187,4 +187,39 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("認證服務正常運行"));
     }
+    
+    @Test
+    void testForgotPassword_Success() throws Exception {
+        // Given
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setLoginId("testuser");
+        when(userService.requestPasswordReset(anyString())).thenReturn(true);
+        
+        // When & Then
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("如果該登入 ID 存在，重置驗證碼已發送。請檢查您的簡訊或郵件。"));
+    }
+
+    @Test
+    void testResetPassword_Success() throws Exception {
+        // Given
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("123456");
+        request.setNewPassword("newpassword123");
+        when(userService.resetPassword(anyString(), anyString())).thenReturn(true);
+        
+        // When & Then
+        mockMvc.perform(post("/api/auth/reset-password")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("密碼重置成功，請使用新密碼登入"));
+    }    
 }
