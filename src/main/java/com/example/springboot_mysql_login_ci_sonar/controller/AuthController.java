@@ -25,6 +25,7 @@ public class AuthController {
     /**
      * 用戶註冊 API
      * POST /api/auth/signup
+     * TEST
      */
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<UserResponse>> signup(@Valid @RequestBody SignupRequest request) {
