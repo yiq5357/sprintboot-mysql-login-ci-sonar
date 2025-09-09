@@ -40,6 +40,7 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    
     private User testUser;
     private SignupRequest signupRequest;
     private LoginRequest loginRequest;
